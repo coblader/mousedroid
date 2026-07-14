@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="48.00in" height="31.91in" viewBox="0 0 48.00 31.91">
+<path d="M 1.1251,31.1556 L 8.1149,31.1556 L 8.4900,30.1479 L 8.4900,27.3408 L 7.6579,22.3056 L 1.5821,22.3056 L 0.7500,27.3408 L 0.7500,30.1479 Z" fill="white" stroke="black" stroke-width="0.02"/>
+<path d="M 1.7500,30.4056 L 7.4900,30.4056 L 7.4900,23.5056 L 1.7500,23.5056 Z" fill="black" stroke="none"/>
+<text x="1.100" y="30.806" font-size="0.45" fill="#999999">rib_2</text>
+<path d="M 9.4651,31.1556 L 16.4549,31.1556 L 16.8300,30.1479 L 16.8300,27.3408 L 15.9979,22.3056 L 9.9221,22.3056 L 9.0900,27.3408 L 9.0900,30.1479 Z" fill="white" stroke="black" stroke-width="0.02"/>
+<path d="M 10.0900,30.4056 L 15.8300,30.4056 L 15.8300,23.5056 L 10.0900,23.5056 Z" fill="black" stroke="none"/>
+<text x="9.440" y="30.806" font-size="0.45" fill="#999999">rib_3</text>
+<path d="M 17.4300,31.1556 L 26.0700,31.1556 L 25.0000,22.3450 L 18.5000,22.3450 Z" fill="white" stroke="black" stroke-width="0.02"/>
+<text x="17.780" y="30.806" font-size="0.45" fill="#999999">shell_front</text>
+<path d="M 27.0451,31.1556 L 34.0349,31.1556 L 34.4100,30.1479 L 34.4100,27.3408 L 33.8249,23.8001 L 27.2551,23.8001 L 26.6700,27.3408 L 26.6700,30.1479 Z" fill="white" stroke="black" stroke-width="0.02"/>
+<path d="M 27.6700,30.4056 L 33.4100,30.4056 L 33.4100,25.0001 L 27.6700,25.0001 Z" fill="black" stroke="none"/>
+<text x="27.020" y="30.806" font-size="0.45" fill="#999999">rib_1</text>
+<path d="M 0.7500,21.7056 L 2.2000,21.7056 L 2.2000,21.1056 L 5.1000,21.1056 L 5.1000,21.7056 L 12.0000,21.7056 L 12.0000,21.1056 L 14.9000,21.1056 L 14.9000,21.7056 L 16.1500,21.7056 L 16.1500,14.8056 L 14.9000,14.8056 L 14.9000,15.4056 L 12.0000,15.4056 L 12.0000,14.8056 L 5.1000,14.8056 L 5.1000,15.4056 L 2.2000,15.4056 L 2.2000,14.8056 L 0.7500,14.8056 Z" fill="white" stroke="black" stroke-width="0.02"/>
+<text x="1.100" y="21.356" font-size="0.45" fill="#999999">bottom_plate</text>
+<path d="M 16.7500,21.7056 L 25.3900,21.7056 L 24.3200,14.8654 L 17.8200,14.8654 Z" fill="white" stroke="black" stroke-width="0.02"/>
+<text x="17.100" y="21.356" font-size="0.45" fill="#999999">shell_rear</text>
+<path d="M 25.9900,21.7056 L 43.7400,21.7056 L 37.7650,15.1428 L 28.1950,15.1428 Z" fill="white" stroke="black" stroke-width="0.02"/>
+<text x="26.340" y="21.356" font-size="0.45" fill="#999999">shell_side_R</text>
+<path d="M 0.7500,14.2056 L 18.5000,14.2056 L 12.5250,7.6428 L 2.9550,7.6428 Z" fill="white" stroke="black" stroke-width="0.02"/>
+<text x="1.100" y="13.856" font-size="0.45" fill="#999999">shell_side_L</text>
+<path d="M 19.1000,14.2056 L 28.6700,14.2056 L 28.6700,7.7056 L 19.1000,7.7056 Z" fill="white" stroke="black" stroke-width="0.02"/>
+<text x="19.450" y="13.856" font-size="0.45" fill="#999999">top_panel</text>
+<path d="M 29.2700,14.2056 L 37.2700,14.2056 L 37.2700,8.6056 L 29.2700,8.6056 Z" fill="white" stroke="black" stroke-width="0.02"/>
+<text x="29.620" y="13.856" font-size="0.45" fill="#999999">top_tray</text>
+<path d="M 38.2451,14.2056 L 45.2349,14.2056 L 45.6100,13.1979 L 45.6100,10.3908 L 45.5318,9.9173 L 37.9482,9.9173 L 37.8700,10.3908 L 37.8700,13.1979 Z" fill="white" stroke="black" stroke-width="0.02"/>
+<path d="M 38.8700,13.4556 L 44.6100,13.4556 L 44.6100,11.1173 L 38.8700,11.1173 Z" fill="black" stroke="none"/>
+<text x="38.220" y="13.856" font-size="0.45" fill="#999999">rib_4</text>
+<path d="M 1.4200,7.0428 L 8.7200,7.0428 L 9.3900,4.9957 L 0.7500,4.9957 Z" fill="white" stroke="black" stroke-width="0.02"/>
+<text x="1.100" y="6.693" font-size="0.45" fill="#999999">skirt_front</text>
+<path d="M 10.6600,7.0428 L 17.9600,7.0428 L 18.6300,4.9957 L 9.9900,4.9957 Z" fill="white" stroke="black" stroke-width="0.02"/>
+<text x="10.340" y="6.693" font-size="0.45" fill="#999999">skirt_rear</text>
+<path d="M 20.2050,7.0428 L 21.8550,7.0428 L 21.8550,6.1928 L 24.7550,6.1928 L 24.7550,7.0428 L 31.6550,7.0428 L 31.6550,6.1928 L 34.5550,6.1928 L 34.5550,7.0428 L 36.0050,7.0428 L 36.9800,5.1221 L 19.2300,5.1221 Z" fill="white" stroke="black" stroke-width="0.02"/>
+<text x="19.580" y="6.693" font-size="0.45" fill="#999999">skirt_side_R</text>
+<path d="M 1.7250,4.3957 L 3.3750,4.3957 L 3.3750,3.5457 L 6.2750,3.5457 L 6.2750,4.3957 L 13.1750,4.3957 L 13.1750,3.5457 L 16.0750,3.5457 L 16.0750,4.3957 L 17.5250,4.3957 L 18.5000,2.4750 L 0.7500,2.4750 Z" fill="white" stroke="black" stroke-width="0.02"/>
+<text x="1.100" y="4.046" font-size="0.45" fill="#999999">skirt_side_L</text>
+<path d="M 19.1000,4.3957 L 35.9500,4.3957 L 35.9500,3.2707 L 19.1000,3.2707 Z" fill="white" stroke="black" stroke-width="0.02"/>
+<text x="19.450" y="4.046" font-size="0.45" fill="#999999">belt_band_side_R</text>
+<path d="M 0.7500,1.8750 L 17.6000,1.8750 L 17.6000,0.7500 L 0.7500,0.7500 Z" fill="white" stroke="black" stroke-width="0.02"/>
+<text x="1.100" y="1.525" font-size="0.45" fill="#999999">belt_band_side_L</text>
+<path d="M 18.2000,1.8750 L 26.4400,1.8750 L 26.4400,0.7500 L 18.2000,0.7500 Z" fill="white" stroke="black" stroke-width="0.02"/>
+<text x="18.550" y="1.525" font-size="0.45" fill="#999999">belt_band_front</text>
+<path d="M 27.0400,1.8750 L 35.2800,1.8750 L 35.2800,0.7500 L 27.0400,0.7500 Z" fill="white" stroke="black" stroke-width="0.02"/>
+<text x="27.390" y="1.525" font-size="0.45" fill="#999999">belt_band_rear</text>
+</svg>

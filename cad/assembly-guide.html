@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MSE-6 Mouse Droid — Assembly Guide</title>
+<style>
+  body { font-family: -apple-system, "Helvetica Neue", sans-serif; color: #222; max-width: 900px; margin: 24px auto; padding: 0 16px; line-height: 1.45; }
+  h1 { border-bottom: 3px solid #222; padding-bottom: 6px; }
+  h2 { margin-top: 36px; border-bottom: 1px solid #999; padding-bottom: 4px; }
+  img { max-width: 100%; border: 1px solid #ccc; border-radius: 4px; }
+  .step { display: flex; gap: 16px; margin: 18px 0; align-items: flex-start; page-break-inside: avoid; }
+  .step img { width: 46%; flex-shrink: 0; }
+  .stepnum { font-size: 1.1em; font-weight: 700; }
+  table { border-collapse: collapse; margin: 10px 0; }
+  th, td { border: 1px solid #999; padding: 4px 10px; text-align: left; }
+  th { background: #eee; }
+  .note { background: #fdf6e3; border-left: 4px solid #d0a020; padding: 8px 12px; margin: 12px 0; }
+  @media print { body { margin: 0; } .step img { width: 44%; } }
+</style>
+</head>
+<body>
+
+<h1>MSE-6 Mouse Droid &mdash; Plywood CNC Build</h1>
+<p><strong>Overall:</strong> 19.1&Prime; long &times; 9.0&Prime; wide &times; 11.15&Prime; tall &middot; 1/4&Prime; plywood skins on 4 internal ribs &middot; functional RC, 4 exposed wheels &middot; removable top shell.</p>
+
+<img src="renders/step6_complete.png" alt="Complete droid">
+
+<h2>Exploded view</h2>
+<img src="renders/exploded.png" alt="Exploded view">
+<p>Center: bottom plate + 4 ribs (the skeleton). Outward: skirt panels, then belt bands, then dowel rails. Above: the four shell facets, top panel, and greeble tray that together form the removable lid.</p>
+
+<h2>Parts</h2>
+<h3>CNC-cut 1/4&Prime; plywood — 19 pieces (see mouse-droid-panels.svg)</h3>
+<table>
+<tr><th>Piece</th><th>Qty</th><th>Notes</th></tr>
+<tr><td>Bottom plate</td><td>1</td><td>15.4 &times; 6.9, edge notches at the 4 wheel stations</td></tr>
+<tr><td>Rib 1&ndash;4</td><td>4</td><td>Stations &minus;7&Prime;, &minus;2.5&Prime;, +2.5&Prime;, +7&Prime; from center; lightening holes for wiring</td></tr>
+<tr><td>Skirt sides</td><td>2</td><td>Mirror pair &mdash; cut 2 identical, flip one. Wheel notches in bottom edge</td></tr>
+<tr><td>Skirt front / rear</td><td>2</td><td>Trapezoids, different heights (front clip vs rear clip)</td></tr>
+<tr><td>Belt bands</td><td>4</td><td>Simple strips 1.125&Prime; wide (sides 16.85&Prime;, ends 8.24&Prime;) &mdash; table saw OK</td></tr>
+<tr><td>Shell sides</td><td>2</td><td>Mirror pair &mdash; cut 2 identical, flip one</td></tr>
+<tr><td>Shell front / rear</td><td>2</td><td>Front is the long 47&deg; nose slope, rear the steep 71&deg; facet</td></tr>
+<tr><td>Top panel + greeble tray</td><td>2</td><td>Tray laminates on top of the top panel</td></tr>
+</table>
+
+<h3>Saw-cut 3/8&Prime; square dowel — belt rails (8 pieces, four 36&Prime; dowels)</h3>
+<table>
+<tr><th>Piece</th><th>Qty</th><th>Length</th></tr>
+<tr><td>Side rails (overshoot each end 0.68&Prime; &mdash; the bumper stubs)</td><td>4</td><td>19-1/8&Prime;</td></tr>
+<tr><td>Front / rear rails (fit between the side rails)</td><td>4</td><td>8-1/4&Prime;</td></tr>
+</table>
+
+<h3>Hardware (builder&rsquo;s choice)</h3>
+<p>4 wheels &empty;2.5&Prime; &times; 1&Prime; with set-screw hubs &middot; 2 geared motors + axle blocks (mount to plate <em>underside</em>; axle line 1-1/4&Prime; above ground) &middot; RC receiver + ESC + battery &middot; 4 screws or magnets for the lid.</p>
+
+<h2>Assembly steps</h2>
+
+<div class="step"><img src="renders/step1_skeleton.png" alt="Step 1">
+<div><span class="stepnum">Step 1 — Skeleton.</span><br>
+Glue/screw the 4 ribs to the bottom plate at their stations (&minus;7&Prime;, &minus;2.5&Prime;, +2.5&Prime;, +7&Prime; from center; mark them on the plate first). Square and plumb each rib &mdash; every panel angle in the build comes from these. The recessed waist notch on each rib faces outward.</div></div>
+
+<div class="step"><img src="renders/step2_skirt.png" alt="Step 2">
+<div><span class="stepnum">Step 2 — Skirt.</span><br>
+Glue the 4 skirt panels to the rib skirt-edges and to each other at the corners. The skirt hangs 0.3&Prime; below the plate &mdash; let the ribs set the height. Wheel notches in the side panels go at the wheel stations. Corners are compound angles: hand-bevel or fill and sand.</div></div>
+
+<div class="step"><img src="renders/step3_belt.png" alt="Step 3">
+<div><span class="stepnum">Step 3 — Belt.</span><br>
+Glue the 4 ply belt bands onto the recessed rib waists, edges tight against the skirt&rsquo;s top edge. Then glue the dowel rails onto the bands: bottom rail covers the band-to-skirt joint, top rail sits flush with the band&rsquo;s top edge. Side rails run long &mdash; 0.68&Prime; overshoot at each end. The top rail&rsquo;s flat upper face is the ledge the lid will rest on.</div></div>
+
+<div class="step"><img src="renders/step4_running.png" alt="Step 4">
+<div><span class="stepnum">Step 4 — Running gear &amp; electronics.</span><br>
+With the top wide open: motors and axle blocks on the plate underside, wheels in through the skirt openings (hubs end up nearly flush with the skirt face &mdash; set-screw hubs let you service them from outside). Battery, ESC, receiver on the plate; wiring through the rib lightening holes. <strong>Test drive it now.</strong></div></div>
+
+<div class="step"><img src="renders/step5_lid.png" alt="Step 5">
+<div><span class="stepnum">Step 5 — Build the lid as a unit.</span><br>
+Glue the 4 shell facets + top panel into one self-contained unit, then laminate the greeble tray on top. Dry-assemble it directly on the ribs (cling film over the ribs so squeeze-out can&rsquo;t stick) so it cures at exactly the right angles. Add scrap glue blocks inside the hip corners for strength.</div></div>
+
+<div class="step"><img src="renders/step6_complete.png" alt="Step 6">
+<div><span class="stepnum">Step 6 — Fit the lid (keep it removable).</span><br>
+The lid self-locates: facets rest on the rib shell-edges, bottom edge sits on the top rail ledge all the way around. Secure with 4 small screws through the shell sides into the ribs, or glue cleats inside and use magnets for tool-free access. Don&rsquo;t glue it down &mdash; the top is your only service access. Paint everything satin black.</div></div>
+
+<div class="note"><strong>Shaper Origin notes:</strong> the SVG uses white-fill/black-stroke for exterior cuts and black fill for interior cuts; gray text labels are reference only. Angled facet panels are drawn at their <em>true unfolded size</em> &mdash; cut as drawn. Where two angled panels meet (shell hips, skirt corners) expect a slight edge interference: bevel the mating edges or fill the gap; the belt rails hide the waist joints.</div>
+
+</body>
+</html>
