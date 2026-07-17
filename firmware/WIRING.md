@@ -76,6 +76,31 @@ MPU6050          Battery sense divider
   SCL ► A5
 ```
 
+### Encoder connector pinout (6-pin JST on each motor)
+
+Each motor breaks out to ONE 6-pin plug that carries **both** the encoder
+signals (thin, to the Arduino) and the motor power (fat, to the BTS7960). Pin
+order below matches the vendor diagram (`../chassis/4wd-mecanum-wheel-robot-motor-encoder-diagram.jpg.webp`).
+
+```
+Pin  Vendor label                       Actually is        Wire to (LEFT / RIGHT)
+ 1   "A phase signal from Hall sensor"  Encoder A phase    D2  / D3   (interrupt)
+ 2   "A phase signal from Hall sensor"  Encoder B phase *  D4  / D7
+ 3   Hall sensor positive (+)           Encoder Vcc 3.5-5V 5V
+ 4   Hall sensor GND (-)                Encoder GND        GND
+ 5   connect to motor M-                Motor -            BTS7960 M-
+ 6   connect to motor M+                Motor +            BTS7960 M+
+```
+
+* **The vendor diagram double-labels pins 1 & 2 both as "A phase" — that is a
+  typo.** A 6-wire Hall encoder has two quadrature outputs; pin 2 is the **B
+  phase**. The firmware reads A on the interrupt and compares it against B to get
+  direction, so B must land on D4 (left) / D7 (right). If direction reads
+  backwards, swap the encoder's A/B (pins 1↔2) — see BUILD.md §9 bring-up.
+* Encoder logic is 3.5-5 V, so the Uno's **5V** rail is in range.
+* Spec check: 6 pulses/rev × 1:30 gearbox, counted on CHANGE of A (2 edges) =
+  360 counts per wheel revolution → firmware `COUNTS_PER_REV = 360`.
+
 ## Connection table (Arduino Uno)
 
 | Uno pin | To | Notes |
