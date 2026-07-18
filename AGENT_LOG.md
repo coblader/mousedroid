@@ -22,6 +22,52 @@ Add a row when you start; remove it (and add to history below) when you finish.
 
 ---
 
+## Hardware bring-up — current state (2026-07-17, PAUSED mid-encoder-check)
+
+Physical bench bring-up is underway, done incrementally and on blocks per
+BUILD.md §9. Where things stand:
+
+**Done / verified:**
+- Firmware flashed to the Arduino Uno **from the Jetson via `arduino-cli`**
+  (`arduino:avr:uno`). Board runs; serial verified at 115200 (`# mouse-droid
+  controller ready` + `TEL` lines). "No boards found" earlier was a
+  cable/port issue, now resolved.
+- Jetson↔Arduino link = single USB cable (data + powers the Uno). Arduino has
+  its own power source running; nothing else wired.
+- **LEFT encoder A phase → D2 confirmed working** (counts respond to hand-spin).
+
+**In progress — LEFT encoder B channel:**
+- Symptom: `TEL L` pinned at 0 / ±35 mm/s regardless of spin speed, with a
+  rare `70`. Root cause = B channel (D4) not seeing a toggling signal → the
+  ISR's +1/−1 direction logic cancels every pulse (net ~±1/window). The rare
+  `70` means B is *intermittent*, not fully dead → loose/marginal B wire.
+- Cause of confusion: the connector pin numbering was offset from the vendor
+  diagram (which also mislabels both signal pins as "A phase"). User found the
+  real second signal wire is at **"pin 1"** by their counting.
+- **Method that works: ignore the printed pin numbers — the 2 signal wires are
+  simply the only 2 that toggle 0↔1 when the wheel turns.** Put both toggling
+  wires on D2 and D4 (which is A vs B only flips direction sign, fixed later).
+- A diagnostic sketch `enc_test/enc_test.ino` was given (prints `count`, live
+  `A=`/`B=` levels). NOTE: this sketch is local on the Jetson, NOT in the repo.
+
+**NEXT STEP (definitive test):** with `enc_test` loaded, note `count`, turn the
+wheel **exactly one full revolution slowly**, read the delta.
+- ~±360 (all one sign) → encoder perfect; the ±35 was just slow spinning.
+- only a handful / wanders near 0 → B wire still not solid; reseat pin1→D4.
+Then reflash `mouse_droid_controller` and confirm `TEL L` grows with speed.
+
+**After LEFT encoder passes:** wire RIGHT encoder (A→D3, B→D7, share 5V/GND —
+needs a breadboard/splice for the shared 5V), verify the same way. THEN the
+higher-risk motor+driver+power stage (BTS7960 ×2, battery→15A fuse→switch→12V,
+buck-boost 12V/center-positive metered BEFORE connecting Jetson), on blocks,
+per BUILD.md §9 steps 5–10.
+
+**Not yet touched:** motor power / BTS7960 wiring, battery/power system,
+buck-boost, MPU6050 (IMU_ENABLED can be set false while unwired to skip the
+~0.6s startup calibration — currently still `true` in the repo sketch).
+
+---
+
 ## Completed / history (newest first)
 
 ### 2026-07-17 — agent "opus" (branch: main)
