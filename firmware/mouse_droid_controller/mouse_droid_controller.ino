@@ -71,7 +71,9 @@ const float VOLTAGE_DIVIDER_RATIO = 4.03f;
 const float ADC_REF_V   = 5.0f;
 const float LOW_V_CUTOFF = 9.9f;          // 3.30 V/cell -> latch stop
 const float LOW_V_WARN   = 10.5f;         // 3.50 V/cell -> blink warning
-const bool  IMU_ENABLED  = true;          // set false if no MPU6050 wired
+const bool  IMU_ENABLED  = false;         // set false if no MPU6050 wired
+                                          // (off until drivetrain is solid;
+                                          //  MPU not wired + not yet in control loop)
 
 // ===================== Encoder ISRs =====================
 volatile long leftCount  = 0;

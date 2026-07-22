@@ -139,6 +139,12 @@ Wiring summary that works (open-loop, on blocks):
   4. Later: build the real power stage (LiPo→15A fuse→switch→12V bus, buck-boost
      to Jetson) — replaces the bench adapter. Then floor test + PID tune.
 
+- IMU: set **`IMU_ENABLED = false`** in mouse_droid_controller.ino (was true).
+  MPU6050 is still unwired AND not yet folded into the control loop, so it's off
+  until the drivetrain is solid. When we do add it: wire VCC→5V, GND→GND, SDA→A4,
+  SCL→A5, mount flat/centered (Z vertical), still at boot; then implement
+  heading-hold (BUILD.md §13) — treat wiring + control-loop code as one task.
+
 **After both sides spin correctly open-loop:** resume the LEFT encoder-B fix
 (below), then switch back to `mouse_droid_controller.ino` for the closed-loop
 direction/sign checks (BUILD.md §9 steps 5–8). Power system (LiPo→15A fuse→
