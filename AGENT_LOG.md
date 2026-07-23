@@ -139,6 +139,14 @@ Wiring summary that works (open-loop, on blocks):
   4. Later: build the real power stage (LiPo→15A fuse→switch→12V bus, buck-boost
      to Jetson) — replaces the bench adapter. Then floor test + PID tune.
 
+- Reusable tooling: added **`tools/motor_test.py`** (CLI over serial: -l/-r PWM,
+  -s seconds, --check, -p port; health-gates the Uno, won't spin if unresponsive)
+  and **`tools/README.md`**. Replaces the ad-hoc inline pyserial snippets.
+  Usage: `python3 tools/motor_test.py -l 120 -r 120 -s 5`.
+- "Wheels not spinning" scare after the shorts = **blown 5A inline fuse** (the
+  earlier short popped it, so no 12V to the drivers though the Uno still sent
+  PWM). Replaced the fuse → all four motors run forward again. Fuse did its job.
+
 - IMU: set **`IMU_ENABLED = false`** in mouse_droid_controller.ino (was true).
   MPU6050 is still unwired AND not yet folded into the control loop, so it's off
   until the drivetrain is solid. When we do add it: wire VCC→5V, GND→GND, SDA→A4,
