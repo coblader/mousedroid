@@ -45,8 +45,9 @@ negative-sign issue is moot (direction follows command). Requirement: motors
 must physically spin forward on + command (already verified). Wiring: move left
 working signal D4→D2, keep right working signal on D3, free D4/D7, one encoder
 per side (VCC→5V, GND→GND). Golden (A+B) motor kept as spare/reference.
-TODO after bench-verify: update BUILD.md §6/§7 + firmware/WIRING.md pin maps to
-single-channel (currently still show quadrature D4/D7).
+Docs updated 2026-07-22: BUILD.md §6/§7/§9/§13 + firmware/WIRING.md now describe
+single-channel encoders (D2/D3 signal, D4/D7 unused, direction-from-command),
+the IMU/battery-monitor flags, mirror-mount M+/M-, and the bench-adapter status.
 - ✅ **SINGLE-CHANNEL VERIFIED (2026-07-22).** Rewired: left working signal→D2,
   right working signal→D3, D4/D7 empty, one encoder/side. `drivetrain_test`
   (single-channel) under power: `L80`→EL 35..861, `R80`→ER 32..794, both POSITIVE
@@ -71,7 +72,7 @@ single-channel (currently still show quadrature D4/D7).
      COUNTS_PER_REV so mm/s is real. Straight-line: L & R should match.
   3. Real power stage: LiPo→15A fuse→switch→12V bus→drivers + buck-boost→Jetson;
      wire A0 divider; set BATTERY_MONITOR_ENABLED=true. Replaces bench adapter.
-  4. Update BUILD.md §6/§7 + firmware/WIRING.md pin maps to single-channel.
+  4. ✅ DONE — BUILD.md §6/§7/§9/§13 + firmware/WIRING.md updated to single-channel.
   5. Jetson-side Python: serial wrapper (drive/stop + TEL parse) then vision loop.
 
 Proven facts (don't re-litigate):

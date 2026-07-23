@@ -163,8 +163,9 @@ Full diagram + connection table: **`firmware/WIRING.md`**. Summary of the Arduin
 
 | Uno pin | Connection |
 |---|---|
-| D2 / D4 | LEFT encoder A (interrupt) / B |
-| D3 / D7 | RIGHT encoder A (interrupt) / B |
+| D2 | LEFT encoder signal (interrupt) — **single-channel** (see §7) |
+| D3 | RIGHT encoder signal (interrupt) — **single-channel** (see §7) |
+| D4 / D7 | unused (were LEFT / RIGHT encoder B) |
 | D5 / D6 | BTS7960 #1 (left) RPWM / LPWM |
 | D9 / D10 | BTS7960 #2 (right) RPWM / LPWM |
 | D8 | all four BTS7960 enables (R_EN + L_EN) — HIGH = run, LOW = e-stop |
@@ -187,13 +188,25 @@ Sketch: **`firmware/mouse_droid_controller/mouse_droid_controller.ino`** (no ext
 **What it does:** interrupt-driven encoder counting → 50 Hz per-side PID velocity
 loop → BTS7960 PWM. Command-timeout failsafe and latching LiPo cutoff.
 
+> **Encoders are SINGLE-CHANNEL on this build.** Bring-up found **3 of the 4
+> motors' encoder A channels dead**, so the firmware reads **one working channel
+> per side** (D2 left / D3 right) for wheel speed and takes **direction from the
+> commanded PWM sign** — not quadrature. This gives velocity feedback for the PID
+> but not independent direction sensing (fine for a commanded-velocity loop).
+> Consequence: the measured sign always matches the command, so **motor direction
+> must be physically correct** (there is no encoder A/B swap to fix a sign — set
+> it with M+/M-). D4/D7 are unused. Replacing the motors would restore full
+> quadrature/odometry. See `AGENT_LOG.md` (2026-07-22).
+
 **Configure before first run:**
 | Constant | Meaning | Default |
 |---|---|---|
-| `WHEEL_DIAMETER_MM` | actual wheel diameter | 80 (measure yours) |
-| `COUNTS_PER_REV` | 6 PPR × 2 edges × 30 gear | 360 (verify by hand-rotating one turn) |
+| `WHEEL_DIAMETER_MM` | actual wheel diameter | 80 — **still a placeholder, measure yours** |
+| `COUNTS_PER_REV` | 6 PPR × 2 edges × 30 gear (one channel) | 360 (verify by spinning under power — see `tools/`) |
 | `VOLTAGE_DIVIDER_RATIO` | (R1+R2)/R2 | 4.03 (for 10k/3.3k) |
 | `Kp, Ki, Kd` | PID gains | 0.35 / 1.20 / 0.004 |
+| `IMU_ENABLED` | fold in MPU6050 yaw rate | **false** (IMU not wired) |
+| `BATTERY_MONITOR_ENABLED` | A0 LiPo low-voltage cutoff | **false** on the bench adapter; **set true with the LiPo** (needs the A0 divider wired) |
 
 **Serial protocol (115200 baud):**
 - In: `L<mm/s> R<mm/s>` (e.g. `L200 R200`, `L-150 R150`), or `stop`.
@@ -228,7 +241,7 @@ is the recommended first module. *(Not yet written.)*
 3. Flash the Arduino sketch; set the config constants (§7).
 4. Open a serial monitor at 115200. You should see `# mouse-droid controller ready`.
 5. Send `L100 R0`: left wheels spin **forward**. If backward → swap that side's motor leads.
-6. Watch `TEL`: forward motion → **positive** measured speed. If negative → swap that encoder's A/B.
+6. Watch `TEL`: measured speed grows with wheel speed. (Single-channel: the sign follows the command, so it can't read "backwards" — just make sure the wheel physically spins forward on a positive command, step 5.)
 7. Repeat for the right side.
 8. Verify `stop` halts; verify the failsafe (stop sending → it stops in <0.5 s).
 9. Check the voltage reading in `TEL` matches a meter on the pack.
@@ -283,6 +296,16 @@ Tune one side at a time; the two sides should track the same command closely
 ---
 
 ## 13. Open items / future work
+- **Encoder A channels dead (3 of 4)** — running **single-channel** (speed from one
+  channel per side, direction from the commanded sign; see §7). Works for the
+  velocity loop but gives no true quadrature/odometry. Replace the motors to
+  restore full quadrature.
+- **Real power stage not built yet** — bring-up (through closed-loop) was done on a
+  bench **12 V / 5 A adapter** (+ 5 A fuse), not the LiPo. Still to do: LiPo →
+  15 A fuse → switch → 12 V bus → drivers + buck-boost → Jetson; wire the A0
+  divider; set `BATTERY_MONITOR_ENABLED = true` (§7).
+- **Speed calibration** — `WHEEL_DIAMETER_MM` is still the placeholder 80; measure
+  the real wheel so `TEL` mm/s is accurate and both sides match for straight driving.
 - **Wheel-size/shell fit** (§4 note) — use 63 mm wheels or adjust the shell.
 - **Jetson-side Python** serial wrapper + tracking loop — not yet written.
 - **MPU6050 heading-hold** — firmware reads yaw rate but doesn't yet fold it into

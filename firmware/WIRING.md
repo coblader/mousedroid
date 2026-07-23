@@ -1,7 +1,8 @@
 # Mouse Droid — Wiring
 
 Skid-steer 4WD. Left pair of motors on BTS7960 #1, right pair on BTS7960 #2.
-Arduino Uno = motor controller (USB-powered from Jetson). One encoder read per side.
+Arduino Uno = motor controller (USB-powered from Jetson). One encoder channel read
+per side (**single-channel** — 3 of 4 encoder A channels are dead; see below).
 
 ## 1. Power distribution (thick wire, 12–14 AWG)
 
@@ -56,17 +57,17 @@ Arduino Uno                         BTS7960 #1 (LEFT)
   D8  ──┘  (same enable line)   ►    R_EN + L_EN (tied)
                                      VCC ◄ 5V,  GND ◄ GND
 
-LEFT motor encoder (6-wire)          Arduino
-  A phase  ───────────────────►      D2  (interrupt)
-  B phase  ───────────────────►      D4
+LEFT motor encoder (6-wire)          Arduino   (SINGLE-CHANNEL — see note)
+  working signal ─────────────►      D2  (interrupt)   one channel only
   Hall +   ◄───────────────────      5V
   Hall GND ◄───────────────────      GND
+  (2nd signal wire)                  D4  UNUSED
   M+ / M-  ── to BTS7960 #1 M+/M-
 
 RIGHT motor encoder (6-wire)         Arduino
-  A phase  ───────────────────►      D3  (interrupt)
-  B phase  ───────────────────►      D7
+  working signal ─────────────►      D3  (interrupt)   one channel only
   Hall +   ◄─ 5V   Hall GND ◄─ GND
+  (2nd signal wire)                  D7  UNUSED
   M+ / M-  ── to BTS7960 #2 M+/M-
 
 MPU6050          Battery sense divider
@@ -94,9 +95,14 @@ Pin  Vendor label                       Actually is        Wire to (LEFT / RIGHT
 
 * **The vendor diagram double-labels pins 1 & 2 both as "A phase" — that is a
   typo.** A 6-wire Hall encoder has two quadrature outputs; pin 2 is the **B
-  phase**. The firmware reads A on the interrupt and compares it against B to get
-  direction, so B must land on D4 (left) / D7 (right). If direction reads
-  backwards, swap the encoder's A/B (pins 1↔2) — see BUILD.md §9 bring-up.
+  phase**.
+* **SINGLE-CHANNEL on this build (2026-07-22):** 3 of the 4 motors' encoder A
+  channels turned out dead. The firmware now reads just **one working channel per
+  side** on the interrupt pin (D2 left / D3 right) and infers direction from the
+  commanded PWM sign — it does **not** compare A vs B. Wire the wheel's one
+  *toggling* signal (whichever channel works) to D2/D3; **D4/D7 are unused**.
+  There is no A/B swap to fix a sign — instead make the motor spin forward on a
+  positive command (swap that side's M+/M-). See BUILD.md §7 and AGENT_LOG.md.
 * Encoder logic is 3.5-5 V, so the Uno's **5V** rail is in range.
 * Spec check: 6 pulses/rev × 1:30 gearbox, counted on CHANGE of A (2 edges) =
   360 counts per wheel revolution → firmware `COUNTS_PER_REV = 360`.
@@ -105,10 +111,10 @@ Pin  Vendor label                       Actually is        Wire to (LEFT / RIGHT
 
 | Uno pin | To | Notes |
 |---|---|---|
-| D2 | LEFT encoder A | hardware interrupt |
-| D3 | RIGHT encoder A | hardware interrupt |
-| D4 | LEFT encoder B | |
-| D7 | RIGHT encoder B | |
+| D2 | LEFT encoder signal (single channel) | hardware interrupt |
+| D3 | RIGHT encoder signal (single channel) | hardware interrupt |
+| D4 | unused (was LEFT encoder B) | single-channel — see note |
+| D7 | unused (was RIGHT encoder B) | single-channel — see note |
 | D5 / D6 | BTS7960#1 RPWM / LPWM | PWM |
 | D9 / D10 | BTS7960#2 RPWM / LPWM | PWM |
 | D8 | all four BTS enables | HIGH=run, LOW=e-stop |
@@ -121,8 +127,13 @@ Pin  Vendor label                       Actually is        Wire to (LEFT / RIGHT
 ## Critical notes
 - **One common ground** — the #1 cause of flaky encoder/PWM behavior is the
   Arduino/logic ground not being tied to the motor-power (battery −) ground.
-- **Only one encoder per side is read.** The other motor on each side still gets
-  M+/M- power from the driver; its encoder wires can be left unconnected.
+- **Single-channel encoders — one channel per side is read** (D2/D3). 3 of the 4
+  motors' encoder A channels are dead, so the firmware reads one working channel
+  per side and infers direction from the commanded PWM sign (not quadrature);
+  D4/D7 unused. The other motor on each side still gets M+/M- power; its encoder
+  can be left unconnected. See BUILD.md §7 / AGENT_LOG.md.
+- **Right side M+/M- are reversed vs the left** (the motors are mirror-mounted) so
+  a positive command drives both sides forward — expected, not a mistake.
 - **Barrel plug polarity: center positive.** Meter it before plugging the Jetson.
 - Keep the fat 12V motor wiring physically away from the thin encoder/signal wires.
 - The main switch cuts everything including the Jetson (buck-boost taps the switched bus).
