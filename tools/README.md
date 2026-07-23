@@ -15,6 +15,7 @@ for bring-up state and history see [`../AGENT_LOG.md`](../AGENT_LOG.md).
 | Script | What it does | Needs flashed |
 |---|---|---|
 | `motor_test.py` | Drives the motors over serial for open-loop bench testing (forward / reverse / pivot / one side). Health-gates the Uno first and won't command motion if the board is unresponsive. | `firmware/motor_test/motor_test.ino` |
+| `encoder_test.py` | Reads live encoder counts for the "one full revolution" check (~±360 counts/wheel-rev). Zeros, gives you a window to hand-turn a wheel, then reports the per-side delta + a verdict. | `firmware/encoder_test/encoder_test.ino` |
 
 ### `motor_test.py`
 Open-loop motor driver test. Sends `L<pwm> R<pwm>` commands, holds for a set
@@ -41,6 +42,26 @@ If the port is stuck (`device busy`), a stray process may be holding it:
 ```bash
 fuser -k /dev/ttyACM0
 ```
+
+### `encoder_test.py`
+Encoder verification via the classic one-revolution check. It zeros the counts,
+then gives you a window to **rotate a wheel exactly one full turn by hand**, and
+reports the count delta per side.
+
+```bash
+python3 tools/encoder_test.py            # 30s window
+python3 tools/encoder_test.py -s 45      # longer window
+```
+
+Expect **~±360 counts** for one full wheel revolution (6 PPR × 2 edges × 30:1
+gearbox — matches `COUNTS_PER_REV` in the flight firmware).
+- **~±360, all one sign** → encoder good.
+- **near 0 / wandering** → that side's **B channel isn't toggling** (loose/wrong
+  wire); reseat and retry. The printed `La/Lb/Ra/Rb` levels help: turn a wheel
+  slowly and both that side's A and B must flip 0↔1.
+
+Which wheel maps to which count: **RIGHT = front-right (D3/D7)**, **LEFT =
+front-left (D2/D4)**. The other motor per side has its encoder unplugged.
 
 ## Adding a script here
 Drop it in this folder and **add a row to the table above** plus a short section

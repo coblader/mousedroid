@@ -18,7 +18,43 @@ Add a row when you start; remove it (and add to history below) when you finish.
 
 | Agent | Branch | Task | Started | Status |
 |---|---|---|---|---|
-| opus | main | Motor + BTS7960 bring-up (from nothing) | 2026-07-20 | In progress — RIGHT-front motor wired to BTS7960 #2; open-loop direction test next |
+| opus | main | Drivetrain bring-up (motors ✅ + encoders) | 2026-07-20 | PAUSED 2026-07-22 — motors done; encoders: RIGHT good (needs A/B sign swap), LEFT A-wire unresolved. Resume steps below. |
+
+---
+
+## ▶ RESUME HERE (paused 2026-07-22, end of day)
+
+Where we are: **all 4 motors drive forward (open-loop) ✅.** Encoder bring-up is
+the remaining blocker before closed-loop. Bench setup: on blocks, 12V/5A wall
+adapter (+5A fuse) on both BTS7960 B+/B-, common ground, Uno on Jetson USB
+(/dev/ttyACM0). Board flashed with **`firmware/drivetrain_test`** (open-loop
+drive + encoder count + live A/B levels).
+
+Proven facts (don't re-litigate):
+- All 4 Arduino encoder pins (D2/D4/D3/D7) are HEALTHY; Uno undamaged; count
+  logic good. (A good encoder counts fine on any of them.)
+- RIGHT encoder: **hardware good** — counts cleanly, both channels toggle. BUT
+  currently reads **NEGATIVE for forward** → needs O-A↔O-B (D3↔D7) swap so
+  forward=positive.
+- LEFT encoder: only its **B** channel produces a signal; its **A** signal is
+  landing on the wrong connector pin (D2 reads constant 1). Two different left
+  encoders both showed this → it's a wire/pin-ID issue, NOT the encoder or D2.
+- Motor directions are correct — **leave M+/M- alone** on both sides.
+
+Tomorrow, in order:
+1. **Find the LEFT encoder's real A output.** Keep working B on D4. Probe the
+   thin connector wires with a meter while spinning (signal = flickers 0↔5V;
+   VCC = steady 5V; GND = 0) OR move a candidate to D2 and run
+   `python3 tools/motor_test.py -l 80 -r 0 -s 3` — `La` should toggle & EL climb.
+2. **Swap RIGHT O-A↔O-B (D3↔D7)**; re-run `-r 80` and confirm ER now climbs
+   POSITIVE for forward.
+3. Confirm BOTH: forward → EL and ER both climb POSITIVE (~600/3s at PWM 80).
+4. Then switch off the test sketches: flash `firmware/mouse_droid_controller`
+   (IMU already disabled), verify TEL shows positive speed both sides, PID tune.
+5. Later (separate): real LiPo power stage; Jetson-side Python serial wrapper.
+
+Test tools: `tools/motor_test.py` (drive), `tools/encoder_test.py` (hand-turn
+check). Watch for stray procs on the port → `fuser -k /dev/ttyACM0`.
 
 ---
 
@@ -146,6 +182,70 @@ Wiring summary that works (open-loop, on blocks):
 - "Wheels not spinning" scare after the shorts = **blown 5A inline fuse** (the
   earlier short popped it, so no 12V to the drivers though the Uno still sent
   PWM). Replaced the fuse → all four motors run forward again. Fuse did its job.
+
+- Encoder verification tooling added: **`firmware/encoder_test/encoder_test.ino`**
+  (reads counts + live A/B levels, `z` to zero) with **`tools/encoder_test.py`**
+  (one-revolution hand-turn check), and **`firmware/drivetrain_test/drivetrain_test.ino`**
+  (open-loop drive + encoder count in one sketch — spin under power and watch the
+  count, driven via `tools/motor_test.py`). Hand-backdriving the 1:30 gearbox is
+  unreliable; the powered spin test is the definitive encoder check.
+- Encoder findings (via drivetrain_test, powered spin):
+  - ✅ **RIGHT encoder GOOD** — `R80` → ER climbed 0→619 in 3s, monotonic +.
+    Forward = POSITIVE count (correct sign for PID). No D3/D7 swap needed after
+    the earlier swap. (Right encoder needed a VCC/GND connection fix first.)
+  - ❌ **LEFT encoder FAULT — isolated to A channel / D2.** Live A/B levels: under
+    `L80` (wheel spinning) `Lb`(D4) toggles = B good; `La`(D2) STUCK at 1 = A not
+    reaching D2 → ISR never fires → EL frozen at 0.
+  - **BOTH encoders per side had been wired in parallel** onto D2/D4 (left) and
+    D3/D7 (right) — electrically wrong (open-collector outputs, hence INPUT_PULLUP;
+    paralleling = wired-AND of two ~synced-but-not-identical signals → garbled).
+    Right happened to still count (luck), left collapsed to stuck. Disconnected
+    the extra encoder on each side (kept one per side; unused signal wires left
+    floating, tucked so they can't short).
+  - After going single-encoder: **RIGHT re-verified CLEAN** — `R80` → ER 33→813,
+    Ra & Rb both toggle. Trustworthy for PID.
+  - **LEFT still stuck** on a single encoder (La=1, Lb toggles, EL=0) → so it's
+    NOT contention; the A signal isn't reaching D2. NEXT: swap the two left
+    wires D2<->D4 to isolate: if La then toggles, D2 pin is good and this
+    encoder's A lead/output is bad (try the other left encoder); if La still
+    stuck, suspect the D2 pin itself.
+  - **Tried a SECOND left encoder (front-left instead of rear-left): SAME fault**
+    — La(D2) stuck at 1, Lb(D4) toggles, EL=0. Two different encoders failing
+    identically on D2 ⇒ **problem is the D2 side, not the encoder** (D4 + count
+    logic proven good). Decisive next test: swap the two left wires D2<->D4 (put
+    the known-toggling wire on D2). La toggles ⇒ D2 pin OK, the wire landing on
+    D2 is wrong/not-a-signal; La still stuck ⇒ D2 pin damaged (Uno has only D2/D3
+    as ext-interrupts → would need a pin-change-interrupt firmware workaround).
+    NOTE: encoders in use are the two REAR motors originally; FL was the 2nd try.
+  - **RESULT of D2<->D4 swap: the stuck/good behavior FOLLOWED THE WIRES, not the
+    pins.** After swap, La(D2) toggles ✅ and Lb(D4) went stuck. So **both D2 and
+    D4 pins are healthy** (no board damage, no firmware workaround needed) and the
+    count logic is fine. The fault is **ONE dead signal wire** that reads constant
+    1 (open / not a real signal) regardless of pin. Same on two encoders ⇒ it's a
+    **bad jumper or a wire tapping the wrong connector pin**, NOT the encoder.
+    FIX: replace that one jumper and/or re-land it on the encoder's actual 2nd
+    signal output (the two signal pins are the only two that toggle when the wheel
+    spins). VCC/GND are fine (encoder powered). Then re-test `L80` → expect EL to
+    climb. LEFT is the last thing between us and closed-loop.
+  - **CROSS-SWAP TEST (decisive): right encoder→D2/D4, left encoder→D3/D7.**
+    Right encoder on D2/D4 (drove R): EL 34→815, La+Lb both toggle = D2/D4 pins
+    100% good. Left encoder on D3/D7 (drove L): ER frozen 0, Ra STUCK at 1, Rb
+    toggles = SAME A-channel failure on the known-good right pins. ⇒ **Fault
+    follows the LEFT ENCODER, not the board. All 4 pins good, no fw workaround.**
+    Left encoder only ever produces its B signal; its A signal is missing. Two
+    different left encoders both fail on A ⇒ A wire is systematically landing on
+    the WRONG connector pin (reads constant 1 = power/unused), not the A output.
+    FIX: find the left encoder's real A output — mirror the RIGHT connector's
+    A-wire position (same part/pinout), or probe each left connector wire while
+    spinning until A toggles. Then UN-CROSS (left enc→D2/D4, right enc→D3/D7 to
+    match each side's motor) and verify both.
+  - Un-crossed (rear-left enc→D2/D4, rear-right enc→D3/D7), re-tested both:
+    RIGHT counts clean (both channels toggle) but **NEGATIVE for forward** (R80 →
+    ER -35..-817) — A/B order got flipped in rewiring; **swap right O-A↔O-B
+    (D3↔D7)** so forward=positive (BUILD.md §9 step 6). LEFT unchanged: La stuck
+    1, Lb toggles, EL=0 → left A signal still on wrong connector pin. LEFT A wire
+    is THE remaining blocker; fix by probe/mirror-the-right, then swap right A/B,
+    then both sides verified → closed-loop.
 
 - IMU: set **`IMU_ENABLED = false`** in mouse_droid_controller.ino (was true).
   MPU6050 is still unwired AND not yet folded into the control loop, so it's off
