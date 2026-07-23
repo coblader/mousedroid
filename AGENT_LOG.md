@@ -18,7 +18,7 @@ Add a row when you start; remove it (and add to history below) when you finish.
 
 | Agent | Branch | Task | Started | Status |
 |---|---|---|---|---|
-| opus | main | Drivetrain bring-up (motors ✅ + encoders ✅) | 2026-07-20 | Open-loop drivetrain DONE — motors + single-channel encoders both verified. Next: closed-loop flight firmware (handle A0 low-V cutoff first). |
+| opus | main | Drivetrain bring-up — CLOSED-LOOP WORKING ✅ | 2026-07-20 | Flight firmware runs; both sides hold commanded velocity (PID on single-channel encoders). Remaining: PID tune, wheel-dia calibration, real power stage (+A0 divider, re-enable batt monitor), docs, Jetson software. |
 
 ---
 
@@ -57,6 +57,22 @@ single-channel (currently still show quadrature D4/D7).
   on the bench adapter the A0 divider likely isn't wired, so readBatteryV may
   latch FAULT_LOWV and disable motors. Either wire the A0 divider, or bench-
   bypass the cutoff. Then `L100 R0`, watch TEL measured speed grow, PID tune.
+- ✅ **CLOSED-LOOP VERIFIED (2026-07-22).** Added `BATTERY_MONITOR_ENABLED=false`
+  (bench; A0 divider not wired — else the floating A0 reads ~5-7V and would latch
+  FAULT_LOWV; MUST set true + wire divider R1 10k/R2 3.3k with the LiPo). Flashed
+  mouse_droid_controller.ino: `L100 R0` → TEL L tracks ~100; `L100 R100` → both
+  TEL L & R track ~100 mm/s. PID closes the loop on single-channel feedback.
+  Measured quantizes to 70/105 at low speed (coarse counts/telemetry-window) but
+  averages on target. Note TEL V is bogus (floating A0, monitor off) — ignore.
+
+  REMAINING before "it drives on the floor":
+  1. PID tune / check at higher speeds (smooth out low-speed quantization).
+  2. Calibrate WHEEL_DIAMETER_MM (measure real wheel; placeholder 80) + confirm
+     COUNTS_PER_REV so mm/s is real. Straight-line: L & R should match.
+  3. Real power stage: LiPo→15A fuse→switch→12V bus→drivers + buck-boost→Jetson;
+     wire A0 divider; set BATTERY_MONITOR_ENABLED=true. Replaces bench adapter.
+  4. Update BUILD.md §6/§7 + firmware/WIRING.md pin maps to single-channel.
+  5. Jetson-side Python: serial wrapper (drive/stop + TEL parse) then vision loop.
 
 Proven facts (don't re-litigate):
 - All 4 Arduino encoder pins (D2/D4/D3/D7) are HEALTHY; Uno undamaged; count

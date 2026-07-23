@@ -85,6 +85,12 @@ const float LOW_V_WARN   = 10.5f;         // 3.50 V/cell -> blink warning
 const bool  IMU_ENABLED  = false;         // set false if no MPU6050 wired
                                           // (off until drivetrain is solid;
                                           //  MPU not wired + not yet in control loop)
+// LiPo low-voltage cutoff. Requires the A0 divider (R1 10k / R2 3.3k) wired.
+// FALSE for bench testing on the DC adapter (no pack to protect, A0 unwired -
+// would otherwise latch a false FAULT_LOWV and kill the motors).
+// !!! SET TRUE when running on the LiPo (and wire the A0 divider) - over-
+// discharge protection is mandatory for a 3S pack. !!!
+const bool  BATTERY_MONITOR_ENABLED = false;
 
 // ===================== Encoder ISRs (single-channel) =====================
 // Count every edge of the one wired channel; direction comes from the last
@@ -161,7 +167,7 @@ void loop() {
     if (now - lastCmdMs > CMD_TIMEOUT_MS) { targetL_mms = 0; targetR_mms = 0; }
 
     if (IMU_ENABLED) yawRate = imuReadYawRate();
-    checkBattery();
+    if (BATTERY_MONITOR_ENABLED) checkBattery();
 
     if (faulted) {
       stopMotors();
