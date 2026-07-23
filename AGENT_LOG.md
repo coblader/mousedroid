@@ -18,7 +18,7 @@ Add a row when you start; remove it (and add to history below) when you finish.
 
 | Agent | Branch | Task | Started | Status |
 |---|---|---|---|---|
-| opus | main | Drivetrain bring-up (motors ✅ + encoders) | 2026-07-20 | PAUSED 2026-07-22 — motors done; encoders: RIGHT good (needs A/B sign swap), LEFT A-wire unresolved. Resume steps below. |
+| opus | main | Drivetrain bring-up (motors ✅ + encoders ✅) | 2026-07-20 | Open-loop drivetrain DONE — motors + single-channel encoders both verified. Next: closed-loop flight firmware (handle A0 low-V cutoff first). |
 
 ---
 
@@ -29,6 +29,34 @@ the remaining blocker before closed-loop. Bench setup: on blocks, 12V/5A wall
 adapter (+5A fuse) on both BTS7960 B+/B-, common ground, Uno on Jetson USB
 (/dev/ttyACM0). Board flashed with **`firmware/drivetrain_test`** (open-loop
 drive + encoder count + live A/B levels).
+
+**ROOT CAUSE FOUND (2026-07-22): hardware — 3 of the 4 motor encoder A channels
+are DEAD** (meter-tested directly at the motor connectors). Only 1 of 4 motors
+has a working A channel; both LEFT motors' A channels are dead → that's why the
+left A was stuck all along (never a wiring mistake). The right side counted only
+because the motor being read is the one good A. Consequence: a motor swap alone
+can't give quadrature on both sides (only 1 good A exists). B channels appear to
+work — CONFIRM B on all 4 next. Suspect the A damage came from the earlier
+shorts/12V events; protect any replacements. DECISION MADE: **(A) single-channel firmware.** mouse_droid_controller.ino now
+reads ONE channel per side on the interrupt pins (D2 left, D3 right), counts
+every edge, and takes DIRECTION FROM THE COMMANDED PWM SIGN (leftDir/rightDir).
+D4/D7 unused. COUNTS_PER_REV stays 360. Compiles clean. Right's earlier
+negative-sign issue is moot (direction follows command). Requirement: motors
+must physically spin forward on + command (already verified). Wiring: move left
+working signal D4→D2, keep right working signal on D3, free D4/D7, one encoder
+per side (VCC→5V, GND→GND). Golden (A+B) motor kept as spare/reference.
+TODO after bench-verify: update BUILD.md §6/§7 + firmware/WIRING.md pin maps to
+single-channel (currently still show quadrature D4/D7).
+- ✅ **SINGLE-CHANNEL VERIFIED (2026-07-22).** Rewired: left working signal→D2,
+  right working signal→D3, D4/D7 empty, one encoder/side. `drivetrain_test`
+  (single-channel) under power: `L80`→EL 35..861, `R80`→ER 32..794, both POSITIVE
+  & monotonic, La/Ra toggle. Left encoder finally reads. Open-loop drivetrain
+  (motors + encoders) fully working. mouse_droid_controller.ino + drivetrain_test
+  both single-channel now.
+  NEXT: closed-loop. Before flashing the flight fw, handle the A0 LiPo cutoff —
+  on the bench adapter the A0 divider likely isn't wired, so readBatteryV may
+  latch FAULT_LOWV and disable motors. Either wire the A0 divider, or bench-
+  bypass the cutoff. Then `L100 R0`, watch TEL measured speed grow, PID tune.
 
 Proven facts (don't re-litigate):
 - All 4 Arduino encoder pins (D2/D4/D3/D7) are HEALTHY; Uno undamaged; count

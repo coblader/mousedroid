@@ -6,8 +6,12 @@
  * encoder check than hand-backdriving the gearbox. Still open-loop (raw PWM,
  * no PID), so a non-counting encoder can't cause runaway.
  *
- * Same pins + same count logic as the flight firmware, so results carry over.
- *   Encoder: 6 PPR x 2 edges (CHANGE of A) x 30:1 = 360 counts / wheel rev.
+ * SINGLE-CHANNEL (matches the flight firmware after 2026-07-22): counts every
+ * edge of the ONE wired channel on D2 (left) / D3 (right); direction is taken
+ * from the commanded PWM sign, not quadrature (3/4 motors' A channels are dead).
+ * The La/Lb/Ra/Rb levels are still printed for diagnostics (D4/D7 now unused,
+ * so Lb/Rb just float high).
+ *   Encoder: 6 PPR x 2 edges (CHANGE) x 30:1 = 360 counts / wheel rev.
  *
  * Pairs with tools/motor_test.py for driving (it just prints whatever telemetry
  * comes back, so the encoder counts show up in its output).
@@ -29,8 +33,9 @@ const uint8_t LEFT_ENC_A  = 2, LEFT_ENC_B  = 4;   // D2 interrupt
 const uint8_t RIGHT_ENC_A = 3, RIGHT_ENC_B = 7;   // D3 interrupt
 
 volatile long leftCount = 0, rightCount = 0;
-void leftISR()  { if (digitalRead(LEFT_ENC_A)  == digitalRead(LEFT_ENC_B))  leftCount++;  else leftCount--; }
-void rightISR() { if (digitalRead(RIGHT_ENC_A) == digitalRead(RIGHT_ENC_B)) rightCount++; else rightCount--; }
+volatile int8_t leftDir = 1, rightDir = 1;   // single-channel: dir from commanded PWM
+void leftISR()  { leftCount  += leftDir;  }
+void rightISR() { rightCount += rightDir; }
 
 int outL = 0, outR = 0;
 char buf[32]; uint8_t n = 0;
@@ -41,7 +46,12 @@ void drive(uint8_t rp, uint8_t lp, int o) {
   if (o >= 0) { analogWrite(rp, o); analogWrite(lp, 0); }
   else        { analogWrite(rp, 0); analogWrite(lp, -o); }
 }
-void apply() { drive(LEFT_RPWM, LEFT_LPWM, outL); drive(RIGHT_RPWM, RIGHT_LPWM, outR); }
+void apply() {
+  if (outL > 0) leftDir = 1; else if (outL < 0) leftDir = -1;   // dir from command
+  if (outR > 0) rightDir = 1; else if (outR < 0) rightDir = -1;
+  drive(LEFT_RPWM, LEFT_LPWM, outL);
+  drive(RIGHT_RPWM, RIGHT_LPWM, outR);
+}
 
 void parse(char *s) {
   if (strncasecmp(s, "stop", 4) == 0) { outL = outR = 0; return; }

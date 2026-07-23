@@ -18,22 +18,32 @@
  *   Telemetry out (every 200 ms):
  *     "TEL L<mm/s> R<mm/s> V<volts> Y<deg/s>"   (+ " FAULT_LOWV" if latched)
  *
+ * ---- ENCODERS: SINGLE-CHANNEL (see AGENT_LOG 2026-07-22) ----
+ *   3 of the 4 motors' encoder A channels are dead; only the B channels work.
+ *   So each side reads ONE working channel (a B output) on its interrupt pin and
+ *   infers DIRECTION from the commanded PWM sign (leftDir/rightDir) instead of
+ *   from quadrature. This gives wheel SPEED for the velocity loop, but not
+ *   independent direction sensing. Because direction is taken from the command,
+ *   the measured sign ALWAYS matches the command -> the MOTOR direction must be
+ *   physically correct (there is no encoder A/B swap to fix a wrong sign).
+ *
  * ---- FIRST BRING-UP (do this with the droid up on blocks, wheels free) ----
  *   1. Send "L100 R0". LEFT wheels should spin FORWARD. If backward, swap that
  *      side's two motor leads on the BTS7960 (or swap RPWM/LPWM pins).
- *   2. Watch telemetry: driving forward, measured L should be POSITIVE. If it
- *      reads negative, swap that encoder's A/B wires (or negate in leftISR).
+ *   2. Watch telemetry: measured L should grow in magnitude with speed. (Sign
+ *      follows the command by design, so it can't read "backwards" here.)
  *   3. Repeat for the right side. Only then tune PID and put it on the floor.
  */
 
 #include <Wire.h>
 
 // ===================== Pin map (Arduino Uno) =====================
-// Encoders — D2 & D3 are the Uno's ONLY hardware-interrupt pins.
-const uint8_t LEFT_ENC_A  = 2;    // interrupt
-const uint8_t LEFT_ENC_B  = 4;
-const uint8_t RIGHT_ENC_A = 3;    // interrupt
-const uint8_t RIGHT_ENC_B = 7;
+// Encoders — SINGLE-CHANNEL. D2 & D3 are the Uno's ONLY hardware-interrupt pins.
+// Put each side's ONE working encoder channel (a B output; A is dead on 3/4
+// motors) on its interrupt pin. Direction is inferred from the commanded PWM
+// sign, not quadrature (see header + AGENT_LOG 2026-07-22). D4/D7 now UNUSED.
+const uint8_t LEFT_ENC  = 2;      // interrupt — left side single channel
+const uint8_t RIGHT_ENC = 3;      // interrupt — right side single channel
 
 // BTS7960 #1 (both LEFT motors wired in parallel to this driver)
 const uint8_t LEFT_RPWM   = 5;    // PWM
@@ -49,9 +59,10 @@ const uint8_t VBAT_PIN    = A0;   // 3S pack via resistor divider (see below)
 const uint8_t LED_PIN     = 13;   // status: solid=fault, blink=low warn
 
 // ===================== Robot / tuning constants =====================
-// Encoder: 6 pulses/motor-rev, counted on BOTH edges of channel A (x2),
-// through the 1:30 gearbox -> 6 * 2 * 30 = 360 counts per WHEEL revolution.
-// VERIFY: rotate a wheel exactly one full turn by hand and watch the count.
+// Encoder: 6 pulses/motor-rev, counted on BOTH edges (CHANGE) of the ONE wired
+// channel (x2), through the 1:30 gearbox -> 6 * 2 * 30 = 360 counts per WHEEL rev
+// (same total as counting one channel of a quadrature pair).
+// VERIFY with the tools/ drivetrain test (spin under power, ~360 counts/rev).
 const float COUNTS_PER_REV    = 360.0f;
 const float WHEEL_DIAMETER_MM = 80.0f;    // <-- MEASURE your wheel and set this
 const float WHEEL_CIRC_MM     = WHEEL_DIAMETER_MM * 3.14159265f;
@@ -75,18 +86,16 @@ const bool  IMU_ENABLED  = false;         // set false if no MPU6050 wired
                                           // (off until drivetrain is solid;
                                           //  MPU not wired + not yet in control loop)
 
-// ===================== Encoder ISRs =====================
+// ===================== Encoder ISRs (single-channel) =====================
+// Count every edge of the one wired channel; direction comes from the last
+// commanded PWM sign (leftDir/rightDir), set in the control loop below.
 volatile long leftCount  = 0;
 volatile long rightCount = 0;
+volatile int8_t leftDir  = 1;     // +1 forward / -1 reverse (from commanded PWM)
+volatile int8_t rightDir = 1;
 
-void leftISR() {   // on CHANGE of LEFT_ENC_A; compare with B for direction
-  if (digitalRead(LEFT_ENC_A) == digitalRead(LEFT_ENC_B)) leftCount++;
-  else                                                    leftCount--;
-}
-void rightISR() {
-  if (digitalRead(RIGHT_ENC_A) == digitalRead(RIGHT_ENC_B)) rightCount++;
-  else                                                      rightCount--;
-}
+void leftISR()  { leftCount  += leftDir;  }
+void rightISR() { rightCount += rightDir; }
 
 // ===================== State =====================
 float targetL_mms = 0, targetR_mms = 0;
@@ -109,8 +118,8 @@ const uint8_t MPU_ADDR = 0x68;
 void setup() {
   Serial.begin(115200);
 
-  pinMode(LEFT_ENC_A, INPUT_PULLUP);  pinMode(LEFT_ENC_B, INPUT_PULLUP);
-  pinMode(RIGHT_ENC_A, INPUT_PULLUP); pinMode(RIGHT_ENC_B, INPUT_PULLUP);
+  pinMode(LEFT_ENC, INPUT_PULLUP);
+  pinMode(RIGHT_ENC, INPUT_PULLUP);
 
   pinMode(LEFT_RPWM, OUTPUT);  pinMode(LEFT_LPWM, OUTPUT);
   pinMode(RIGHT_RPWM, OUTPUT); pinMode(RIGHT_LPWM, OUTPUT);
@@ -119,8 +128,8 @@ void setup() {
 
   stopMotors();
 
-  attachInterrupt(digitalPinToInterrupt(LEFT_ENC_A),  leftISR,  CHANGE);
-  attachInterrupt(digitalPinToInterrupt(RIGHT_ENC_A), rightISR, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(LEFT_ENC),  leftISR,  CHANGE);
+  attachInterrupt(digitalPinToInterrupt(RIGHT_ENC), rightISR, CHANGE);
 
   if (IMU_ENABLED) imuInit();     // robot must be still during startup
 
@@ -160,6 +169,9 @@ void loop() {
     } else {
       int outL = pid(targetL_mms, measL_mms, iTermL, prevErrL, dt);
       int outR = pid(targetR_mms, measR_mms, iTermR, prevErrR, dt);
+      // single-channel encoders: infer count direction from the applied PWM sign
+      if (outL > 0) leftDir  = 1; else if (outL < 0) leftDir  = -1;
+      if (outR > 0) rightDir = 1; else if (outR < 0) rightDir = -1;
       driveSide(LEFT_RPWM,  LEFT_LPWM,  outL);
       driveSide(RIGHT_RPWM, RIGHT_LPWM, outR);
     }
