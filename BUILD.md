@@ -32,7 +32,7 @@ while an Arduino handles smooth closed-loop wheel motion.
 
 **Control philosophy — two brains:**
 - **Arduino = reflexes** (hard real-time): encoder reading, PID velocity control, motor driver PWM.
-- **Jetson = cortex** (perception/decisions): camera tracking, turns high-level goals into simple speed commands.
+- **Jetson = cortex** (perception/decisions/personality): camera tracking, turns high-level goals into simple speed commands, and plays the MSE-6 sounds through the speaker.
 
 They talk over one USB cable. This split keeps timing-critical work off Linux
 (which isn't real-time) and keeps the high-level code simple.
@@ -85,7 +85,7 @@ wheels; we simply drive them as skid-steer. The wheels are hidden under the shel
 | "Premium 4WD Mecanum" metal chassis | B0CBRMTCH2 | Rolling base + motors | 37 mm DC motors, **6-wire Hall quadrature encoders**, 12 V, stall 2.8 A, rated 360 mA, gearbox 1:30, encoder 6 pulses/rev |
 | BTS7960 driver, 2-pack | B099N8XS5P (or B0BGR92TCD) | Motor drivers | 43 A, 6–27 V, one module per side |
 | Arduino Uno (or ELEGOO) | B01EWOE0UU / B008GRTSV6 | Motor controller | 2 hardware interrupts (D2/D3) |
-| MPU6050 IMU | B0CRVR1P66 | Heading reference | I²C; optional (encoders cover most of it) |
+| MPU6050 IMU (GY-521) | B0CRVR1P66 | Heading reference | I²C (SDA→A4, SCL→A5, VCC→5V, GND→GND); breakout has onboard pull-ups + regulator — **no extra resistors, 4 jumpers only**; optional |
 
 ### Power
 | Item | ASIN | Purpose | Key specs |
@@ -98,6 +98,18 @@ wheels; we simply drive them as skid-steer. The wheels are hidden under the shel
 | Nilight inline fuse holder + fuses | B0B24YYYCF | Main-line protection | use a **15 A** fuse |
 | DaierTek rocker switch | B07S1MV462 | Main power switch | 20 A @ 12 V, SPST |
 | ELEGOO Dupont jumpers | B01EV70C78 | Signal wiring | M-F/M-M/F-F |
+| LiPo low-voltage buzzer (1S–8S) | — | LiPo over-discharge **alarm** (per-cell) | plugs into the JST-XH balance lead |
+| Resistors 10 kΩ + 3.3 kΩ | — | A0 battery-sense divider → firmware **cutoff** | 1/4 W, 1% metal film (divider ratio 4.03) |
+
+### Audio (MSE-6 sounds — driven by the Jetson)
+| Item | Purpose | Key specs |
+|---|---|---|
+| Adafruit MAX98357A I²S amp | Speaker amplifier, driven by the Jetson | 3 W class-D, 5 V, I²S from the Orin 40-pin |
+| Small speaker 4 Ω, ~3 W | The droid's "voice" | ~40 mm; choose to fit the shell |
+
+*Quick-start alternative:* a small self-powered **USB or Bluetooth speaker** into the
+Jetson skips the amp + I²S setup (bulkier; good for prototyping). Audio is the
+Jetson's job (see §2, §8) — the Arduino stays motion-only.
 
 ### Body
 | Item | Purpose |
@@ -152,7 +164,7 @@ Screen-style MSE-6, 1/4" plywood, rib-and-skin, cut on a Shaper Origin.
 
 **Safety:**
 - **15 A fuse** on the battery positive, closest to the pack.
-- **Never over-discharge the LiPo.** Firmware cuts off at 3.30 V/cell (9.9 V pack). Charge and store in a LiPo bag; balance-charge via the JST-XH lead.
+- **Never over-discharge the LiPo — two layers.** The firmware cuts the motors at 3.30 V/cell (9.9 V pack) via the A0 divider (set `BATTERY_MONITOR_ENABLED = true`, §7), **and** a low-voltage buzzer on the JST-XH balance lead gives a per-cell audible alarm. Charge and store in a LiPo bag; balance-charge via the JST-XH lead.
 - Barrel plug is **center-positive** — verify with a meter before connecting the Jetson.
 
 ---
@@ -230,6 +242,12 @@ loop → BTS7960 PWM. Command-timeout failsafe and latching LiPo cutoff.
 
 A thin Python serial wrapper (`drive(left, right)` / `stop()` + telemetry parsing)
 is the recommended first module. *(Not yet written.)*
+
+**Audio / sounds (Jetson-controlled):** the Jetson also drives the speaker — store
+MSE-6 sound clips (WAV) and trigger them from the behavior loop (e.g., chirp while
+moving, scared warble on target acquire/loss). A small `sounds` module (play a clip
+by name) sits alongside the serial wrapper. Hardware: MAX98357A I²S amp + speaker,
+or a USB/BT speaker. *(Not yet written.)*
 
 ---
 

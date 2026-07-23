@@ -71,9 +71,17 @@ the IMU/battery-monitor flags, mirror-mount M+/M-, and the bench-adapter status.
   2. Calibrate WHEEL_DIAMETER_MM (measure real wheel; placeholder 80) + confirm
      COUNTS_PER_REV so mm/s is real. Straight-line: L & R should match.
   3. Real power stage: LiPo→15A fuse→switch→12V bus→drivers + buck-boost→Jetson;
-     wire A0 divider; set BATTERY_MONITOR_ENABLED=true. Replaces bench adapter.
+     wire A0 divider; set BATTERY_MONITOR_ENABLED=true; + LiPo balance-lead buzzer
+     (BOTH protections — auto-stop cutoff AND per-cell alarm). Replaces bench adapter.
   4. ✅ DONE — BUILD.md §6/§7/§9/§13 + firmware/WIRING.md updated to single-channel.
-  5. Jetson-side Python: serial wrapper (drive/stop + TEL parse) then vision loop.
+  5. Jetson-side Python: serial wrapper (drive/stop + TEL parse), a `sounds` module
+     (MSE-6 audio via a Jetson-driven speaker), then the vision loop.
+
+Parts to order (2026-07-22; added to BUILD.md §3 BOM): A0 divider resistors
+10kΩ + 3.3kΩ (1%, 1/4W); LiPo low-voltage buzzer (JST-XH balance lead); speaker
+audio = MAX98357A I2S amp + 4Ω ~3W speaker (or a USB/BT speaker to prototype).
+MPU6050 (GY-521) needs NO extra parts — onboard pull-ups + regulator, 4 jumpers.
+Audio is Jetson-controlled (BUILD.md §1/§2/§8). Docs updated: BUILD.md §1/§3/§5/§8.
 
 Proven facts (don't re-litigate):
 - All 4 Arduino encoder pins (D2/D4/D3/D7) are HEALTHY; Uno undamaged; count
