@@ -123,6 +123,20 @@ Jetson's job (see §2, §8) — the Arduino stays motion-only.
 | 3/8" square dowel | Side belt rails |
 | Wood glue, fasteners, dark-gray paint | Assembly & finish |
 
+### Still to order (as of 2026-07-22)
+
+Everything else in the tables above is owned/sourced. Outstanding purchases to
+finish the electronics:
+
+- [ ] **A0 divider resistors** — 10 kΩ + 3.3 kΩ, 1/4 W, 1% metal film (or a 1% assortment kit)
+- [ ] **LiPo low-voltage buzzer** (1S–8S, plugs into the JST-XH balance lead)
+- [ ] **ReSpeaker USB Mic Array v2.0** (voice input)
+- [ ] **Speaker audio** — MAX98357A I²S amp + 4 Ω ~3 W speaker (or a USB/BT speaker to prototype)
+
+The **MPU6050 (GY-521)** needs no extra parts — onboard pull-ups + regulator, 4
+jumpers only. All battery-power parts (LiPo, 15 A fuse holder, switch, buck-boost,
+XT60/barrel pigtails, jumpers) are already listed above.
+
 ---
 
 ## 4. The body (CNC plywood shell)

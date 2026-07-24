@@ -30,6 +30,20 @@ GROUND BUS (battery −):  battery− ─ BTS7960#1 B− ─ BTS7960#2 B− ─
                          divider GND   (ALL tied together — one common ground)
 ```
 
+**Main on/off switch:** SPST in the **+12 V line, right after the fuse** — one
+terminal from the fuse output, the other to the +12 V bus (it breaks the positive
+only; ground stays continuous). Carries full system current, so use thick 12–14
+AWG (20 A switch > 15 A fuse). An *illuminated* rocker has a 3rd terminal = lamp
+(−) → common ground. The switch cuts **everything**, including the Jetson.
+
+**LiPo low-voltage buzzer:** standalone alarm — plugs into the pack's **JST-XH
+balance lead**; not wired to the Arduino or the bus. Per-cell audible warning that
+complements the firmware cutoff (see BUILD.md §5).
+
+**Jetson audio peripherals (NOT on the Arduino):** the speaker (MAX98357A I²S amp
+off the Orin 40-pin I²S + 5 V) and the ReSpeaker USB mic array (USB) connect to the
+**Jetson**. See BUILD.md §3 (BOM) and §8 (voice → VLM pipeline).
+
 ## 2. Motors (each driver runs its two motors in parallel)
 
 ```
