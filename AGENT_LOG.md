@@ -79,9 +79,12 @@ the IMU/battery-monitor flags, mirror-mount M+/M-, and the bench-adapter status.
 
 Parts to order (2026-07-22; added to BUILD.md §3 BOM): A0 divider resistors
 10kΩ + 3.3kΩ (1%, 1/4W); LiPo low-voltage buzzer (JST-XH balance lead); speaker
-audio = MAX98357A I2S amp + 4Ω ~3W speaker (or a USB/BT speaker to prototype).
-MPU6050 (GY-521) needs NO extra parts — onboard pull-ups + regulator, 4 jumpers.
-Audio is Jetson-controlled (BUILD.md §1/§2/§8). Docs updated: BUILD.md §1/§3/§5/§8.
+audio = MAX98357A I2S amp + 4Ω ~3W speaker (or a USB/BT speaker to prototype);
+**ReSpeaker USB Mic Array v2.0** (voice input). MPU6050 (GY-521) needs NO extra
+parts — onboard pull-ups + regulator, 4 jumpers.
+Audio + voice are Jetson-controlled. Planned Jetson pipeline (BUILD.md §8):
+mic→wake-word→Whisper STT→(text+frame)→VLM planner→goal→fast tracker→serial→Arduino;
+VLM kept OUT of the real-time loop (layered by timescale). Docs: BUILD.md §1/§2/§3/§5/§8.
 
 Proven facts (don't re-litigate):
 - All 4 Arduino encoder pins (D2/D4/D3/D7) are HEALTHY; Uno undamaged; count

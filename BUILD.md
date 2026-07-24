@@ -32,7 +32,7 @@ while an Arduino handles smooth closed-loop wheel motion.
 
 **Control philosophy — two brains:**
 - **Arduino = reflexes** (hard real-time): encoder reading, PID velocity control, motor driver PWM.
-- **Jetson = cortex** (perception/decisions/personality): camera tracking, turns high-level goals into simple speed commands, and plays the MSE-6 sounds through the speaker.
+- **Jetson = cortex** (perception/decisions/personality): camera tracking **+ voice commands (speech-to-text → VLM)**, turns high-level goals into simple speed commands, and plays the MSE-6 sounds through the speaker.
 
 They talk over one USB cable. This split keeps timing-critical work off Linux
 (which isn't real-time) and keeps the high-level code simple.
@@ -44,8 +44,8 @@ They talk over one USB cable. This split keeps timing-critical work off Linux
 ```
                  ┌───────────────────────────┐
    Arducam ─CSI─►│  Jetson Orin Nano 8GB      │
-   IMX219        │  - camera / tracking       │
-                 │  - decides where to go     │
+   IMX219        │  - sees, hears, decides    │
+                 │  - VLM plans; talks/moves  │
                  └──────────┬────────────────┘
                             │ USB serial (115200)
                             │  "L<mm/s> R<mm/s>" / "stop"
@@ -62,6 +62,10 @@ They talk over one USB cable. This split keeps timing-critical work off Linux
                      ▼               ▼
               2× left motors    2× right motors   ← skid-steer
 ```
+
+**Jetson I/O:** *inputs* — Arducam camera (CSI) + ReSpeaker USB mic array (voice);
+*outputs* — drive commands to the Arduino (USB serial) + MSE-6 sounds to the
+speaker. The voice → VLM command pipeline is described in §8.
 
 **Drive style:** skid-steer (differential). The two left wheels always move
 together and the two right wheels together, so 4 motors reduce to **2 control
@@ -101,10 +105,11 @@ wheels; we simply drive them as skid-steer. The wheels are hidden under the shel
 | LiPo low-voltage buzzer (1S–8S) | — | LiPo over-discharge **alarm** (per-cell) | plugs into the JST-XH balance lead |
 | Resistors 10 kΩ + 3.3 kΩ | — | A0 battery-sense divider → firmware **cutoff** | 1/4 W, 1% metal film (divider ratio 4.03) |
 
-### Audio (MSE-6 sounds — driven by the Jetson)
+### Audio & voice (Jetson-driven)
 | Item | Purpose | Key specs |
 |---|---|---|
-| Adafruit MAX98357A I²S amp | Speaker amplifier, driven by the Jetson | 3 W class-D, 5 V, I²S from the Orin 40-pin |
+| **ReSpeaker USB Mic Array v2.0** | Voice input (spoken commands → STT → VLM) | far-field, beamforming + noise suppression, direction-of-arrival; plug-and-play USB |
+| Adafruit MAX98357A I²S amp | Speaker amplifier (MSE-6 sounds) | 3 W class-D, 5 V, I²S from the Orin 40-pin |
 | Small speaker 4 Ω, ~3 W | The droid's "voice" | ~40 mm; choose to fit the shell |
 
 *Quick-start alternative:* a small self-powered **USB or Bluetooth speaker** into the
@@ -248,6 +253,22 @@ MSE-6 sound clips (WAV) and trigger them from the behavior loop (e.g., chirp whi
 moving, scared warble on target acquire/loss). A small `sounds` module (play a clip
 by name) sits alongside the serial wrapper. Hardware: MAX98357A I²S amp + speaker,
 or a USB/BT speaker. *(Not yet written.)*
+
+**Voice + VLM command pipeline (planned):** a **ReSpeaker USB mic array** feeds
+speech to the Jetson. The pipeline is **layered by timescale** so the VLM never
+sits in the real-time loop:
+
+```
+mic → wake word → Whisper STT → (text + camera frame) → VLM planner → goal
+        goal → fast tracker → "L<mm/s> R<mm/s>" → Arduino ;  sounds = acks
+```
+- **Fast loop** (~10–30 fps): a lightweight detector/tracker executes the current goal.
+- **Slow loop** (voice-triggered / every few sec): the VLM turns a spoken instruction
+  + what it sees into a goal (e.g., "follow the person in blue", "go to the doorway").
+- **On the Orin Nano 8 GB:** Whisper small/base runs on the GPU; use a *small* VLM
+  (Moondream2, Qwen2-VL-2B, nanoLLaVA via NVIDIA `jetson-containers`) — seconds per
+  query, fine for a planner — or a cloud VLM for more capability. A wake word gates
+  the heavy inference. Planned modules: `voice`, `vlm`, `tracker`, `serial`, `sounds`.
 
 ---
 
