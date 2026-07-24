@@ -13,6 +13,7 @@ from __future__ import annotations
 import base64
 import io
 import json
+import os
 import re
 import urllib.error
 import urllib.request
@@ -40,15 +41,20 @@ _JSON_RE = re.compile(r"\{.*\}", re.DOTALL)
 
 class VlmLocator:
     def __init__(self, model=DEFAULT_MODEL, host=DEFAULT_HOST,
-                 num_gpu=99, num_ctx=2048, timeout_s=120):
+                 num_gpu=99, num_ctx=2048, timeout_s=120, debug=False):
         self.model = model
         self.host = host
         self.num_gpu = num_gpu       # 99 = all layers on GPU (essential on Jetson)
         self.num_ctx = num_ctx
         self.timeout_s = timeout_s
+        self.debug = debug or bool(os.environ.get("MOUSEDROID_VLM_DEBUG"))
 
     def locate(self, rgb: np.ndarray) -> Detection:
-        return _parse_detection(self._query(_frame_to_jpeg_b64(rgb)))
+        h, w = rgb.shape[:2]
+        text = self._query(_frame_to_jpeg_b64(rgb))
+        if self.debug:
+            print(f"    [vlm raw] {text!r}")
+        return _parse_detection(text, w, h)
 
     def _query(self, image_b64: str) -> str:
         payload = {
@@ -87,7 +93,21 @@ def _clamp01(x):
     return 0.0 if x < 0 else 1.0 if x > 1 else x
 
 
-def _parse_detection(text: str) -> Detection:
+def _normalize(a, b, dim):
+    """Map a pair of coords on one axis to 0..1.
+
+    VLMs return boxes in different scales: already 0..1, absolute pixels (0..dim),
+    or a 0..1000 grounding grid (Qwen). Pick per axis from the magnitude.
+    """
+    m = max(abs(a), abs(b))
+    if m <= 1.0:
+        return a, b                      # already normalized
+    if dim and m <= dim * 1.02:
+        return a / dim, b / dim          # looks like pixel coords for this axis
+    return a / 1000.0, b / 1000.0        # fall back to 0..1000 grid
+
+
+def _parse_detection(text: str, w=None, h=None) -> Detection:
     m = _JSON_RE.search(text or "")
     if not m:
         return Detection(found=False)
@@ -101,9 +121,13 @@ def _parse_detection(text: str) -> Detection:
     if not (isinstance(box, (list, tuple)) and len(box) == 4):
         return Detection(found=False)
     try:
-        x0, y0, x1, y1 = (_clamp01(float(v)) for v in box)
+        x0, y0, x1, y1 = (float(v) for v in box)
     except (TypeError, ValueError):
         return Detection(found=False)
+    x0, x1 = _normalize(x0, x1, w)
+    y0, y1 = _normalize(y0, y1, h)
+    x0, x1 = _clamp01(x0), _clamp01(x1)
+    y0, y1 = _clamp01(y0), _clamp01(y1)
     if x1 < x0:
         x0, x1 = x1, x0
     if y1 < y0:

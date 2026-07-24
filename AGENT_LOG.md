@@ -18,7 +18,7 @@ Add a row when you start; remove it (and add to history below) when you finish.
 
 | Agent | Branch | Task | Started | Status |
 |---|---|---|---|---|
-| opus | main | Drivetrain bring-up — CLOSED-LOOP WORKING ✅ | 2026-07-20 | Flight firmware runs; both sides hold commanded velocity (PID on single-channel encoders). Remaining: PID tune, wheel-dia calibration, real power stage (+A0 divider, re-enable batt monitor), docs, Jetson software. |
+| opus | main | Jetson follow-person pipeline + drivetrain | 2026-07-20 | PAUSED — perception loop works end-to-end (dry-run); coord-scale fix pending re-verify. Motor power: 5A fuse blows on connect → SHORT (suspect damaged BTS7960), diagnose before re-powering. Drivetrain closed-loop verified earlier. See "Jetson software" RESUME block. |
 
 ---
 
@@ -61,7 +61,37 @@ Bench validation (flight fw on Uno, on blocks, axles only — wheels off):
   as-is → prefer LiPo for a smooth end-to-end run, or coast-stop + low speed.
   Note: TEL V is the floating-A0 value (monitor off), NOT the motor-rail voltage.
 
-NEXT (Jetson): decide coast-stop tweak and/or move to LiPo; then `check_serial.py`
+- ⚠️⚠️ ESCALATED: the 5A fuse now **blows immediately on connecting power** (motors
+  idle at boot) → a **SHORT in the motor-power path**, not just a braking trip.
+  Suspect a **BTS7960 failed shorted** from the repeated plugging/braking spikes,
+  or a shifted wire / reversed polarity on reconnect. DIAGNOSE (power off, fuse
+  out, meter Ω): B+↔B- at bus (~0Ω = short); isolate each driver's B+↔B- and each
+  motor separately to find the ~0Ω culprit; verify adapter polarity to B+ and no
+  bridging strand. Do NOT keep feeding it fuses. (Lesson: we ran many hard
+  reverses/brakes on the 5A adapter without flyback/soft-stop — likely stressed a
+  driver. LiPo + soft-stop firmware + flyback caution for the rebuild.)
+
+- ✅ **PERCEPTION PIPELINE WORKS END-TO-END** (`follow_person.py --once --dry-run`,
+  no motors): camera (GStreamer + gray-world WB) → Qwen2.5VL:3b via Ollama → JSON
+  parse → controller → L/R command. No crashes. First call **73.7 s** (model load
+  + inference on the Orin Nano) — the VLM is slow, as expected.
+- ⚠️ Detection came back degenerate (cx=1.00, area=0.00): Qwen returns box coords
+  NOT in 0–1 (pixel or 0–1000 grid) and the parser clamped them to 1.0. FIX applied
+  to `vlm_locator.py`: scale-aware `_normalize()` (per axis: 0–1 / pixels / 0–1000)
+  + `MOUSEDROID_VLM_DEBUG=1` prints the raw VLM text. **NOT yet re-verified.**
+
+**RESUME NEXT SESSION:**
+  A. **Perception (no motors):** re-run `MOUSEDROID_VLM_DEBUG=1 python3
+     follow_person.py --once --dry-run` WITH A PERSON in frame; confirm the raw box
+     format and that cx/area are now sensible. Tune prompt/scale if needed.
+  B. **Motor power — the 5A fuse now BLOWS ON CONNECT (motors idle) = a SHORT.**
+     Suspect a BTS7960 failed shorted from the repeated braking/plugging spikes.
+     Meter BEFORE re-powering: Ω across B+↔B- at the bus (~0Ω = short); isolate
+     each driver + motor to find the ~0Ω culprit; check polarity / stray strands.
+     Replace the driver if shorted.
+  C. Then a firmware **coast-on-stop** tweak (output 0 instead of PID-braking) to
+     cut spikes, and prefer the **LiPo** (higher current) for a smooth full loop:
+     `--no-move` → full follow loop on blocks.
 → `follow_person.py --dry-run` (camera+VLM, needs Ollama up) → `--no-move` → full
 loop on blocks. OAK-D Lite remains the eventual camera (real depth) — drops in
 behind the Detection interface.
