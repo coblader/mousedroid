@@ -1,0 +1,10 @@
+# Python deps for the Jetson-side control software.
+#
+# NOTE: the camera capture uses PyGObject (gi) + GStreamer, which are SYSTEM
+# packages — install them with apt, not pip (see README):
+#   sudo apt install python3-gi gstreamer1.0-tools \
+#        gstreamer1.0-plugins-good gstreamer1.0-plugins-bad
+#
+pyserial>=3.5
+numpy
+pillow

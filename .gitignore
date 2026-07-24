@@ -3,3 +3,7 @@
 
 # Claude Code local session/config data
 .claude/
+
+# Python
+__pycache__/
+*.pyc
