@@ -22,6 +22,52 @@ Add a row when you start; remove it (and add to history below) when you finish.
 
 ---
 
+## Jetson software — follow-person pipeline (2026-07-23, IN PROGRESS)
+
+New **`jetson/`** dir: consolidated the existing camera/VLM scripts from ~ and
+built the first end-to-end demo (camera→VLM→Arduino→feedback, "follow a person").
+Existing stack reused: `capture_camera.py` (CsiCamera, GStreamer/gi, gray-world WB),
+`ask_camera.py` (Ollama VLM query), Ollama serving **qwen2.5vl:3b**.
+New: `serial_link.py` (MouseDroid: drive/stop/telemetry + heartbeat thread so the
+firmware 500ms failsafe doesn't stall between slow VLM frames), `detection.py`
+(swappable Detection type — VLM now, OAK-D Lite later), `vlm_locator.py` (person
+bbox→Detection), `control.py` (follow_command P-controller), `follow_person.py`
+(the loop; --dry-run/--no-move/--once), `check_serial.py`. All compile; pushed.
+
+Bench validation (flight fw on Uno, on blocks, axles only — wheels off):
+- ✅ `check_serial.py` forward L120 R120 → TEL tracked ~120 both sides. serial_link
+  (connect, drive, heartbeat, TEL parse) all work end-to-end.
+- ⚠️→✅ DIAGNOSED: the `spin` (L-120 R120, hard reverse) **blew the 5A fuse
+  again**. Forward worked, then the reverse spike killed the rail; a follow-up
+  isolation test then read ALL zeros (incl. forward) = motor rail dead, Arduino
+  fine (TEL still streams). Cause: **plugging** — reversing a still-spinning motor
+  drives the H-bridge against back-EMF → current spike >5A on the bench adapter.
+  FIX: replace the 5A fuse; on the 5A bench adapter AVOID hard reversals (the
+  LiPo+15A fuse will handle them later). Tweaked `check_serial.py`: default test
+  is now forward + gentle differential turn (no hard reverse); `--spin` is opt-in
+  and warns it's LiPo-only. The follow demo already defaults allow_reverse=False.
+- Minor: telemetry spikes at command transitions (small-dt artifact); cosmetic.
+- (The "still 0 after fresh fuse" was just the adapter being UNPLUGGED — replugged
+  and forward tracks ~120 again.)
+- ⚠️ REAL MECHANISM: the forward→STOP transition trips the 5A adapter. On stop
+  while spinning, the PID doesn't coast — it sees err=0-120 and **actively brakes
+  by driving reverse** (telemetry shows huge negative spikes at stop, e.g.
+  L-9564). Braking a spinning motor = plugging spike → trips the 5A bench adapter,
+  so the NEXT motion phase reads 0 (happened both runs, reverse or gentle-fwd).
+  It's the 5A bench-supply current limit, NOT a fault; LiPo+15A will handle it.
+  Options: test at lower speed (60-80) to shrink the spike; add a firmware
+  "coast on stop/decel" (output 0 instead of PID-braking) to cut spikes; or just
+  move to the LiPo. The follow loop's constant start/stop will trip the 5A adapter
+  as-is → prefer LiPo for a smooth end-to-end run, or coast-stop + low speed.
+  Note: TEL V is the floating-A0 value (monitor off), NOT the motor-rail voltage.
+
+NEXT (Jetson): decide coast-stop tweak and/or move to LiPo; then `check_serial.py`
+→ `follow_person.py --dry-run` (camera+VLM, needs Ollama up) → `--no-move` → full
+loop on blocks. OAK-D Lite remains the eventual camera (real depth) — drops in
+behind the Detection interface.
+
+---
+
 ## ▶ RESUME HERE (paused 2026-07-22, end of day)
 
 Where we are: **all 4 motors drive forward (open-loop) ✅.** Encoder bring-up is

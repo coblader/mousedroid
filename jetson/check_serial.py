@@ -20,6 +20,9 @@ def main():
     p.add_argument("--port", default="/dev/ttyACM0")
     p.add_argument("--no-move", action="store_true", help="telemetry only, no motion")
     p.add_argument("--speed", type=float, default=120.0, help="test speed mm/s")
+    p.add_argument("--spin", action="store_true",
+                   help="also test a HARD REVERSE spin (LiPo+15A fuse only; "
+                        "blows the 5A bench fuse)")
     args = p.parse_args()
 
     with MouseDroid(port=args.port) as d:
@@ -29,12 +32,20 @@ def main():
         if args.no_move:
             return
 
-        for label, (l, r) in [
-            ("forward", (args.speed, args.speed)),
-            ("stop",    (0, 0)),
-            ("spin",    (-args.speed, args.speed)),
-            ("stop",    (0, 0)),
-        ]:
+        # NOTE: default pattern is forward + a gentle differential turn (no hard
+        # reverse). On the 5 A bench adapter, reversing a still-spinning motor
+        # ("plugging") spikes current and blows the 5 A fuse — use --spin only on
+        # the real LiPo + 15 A fuse.
+        pattern = [
+            ("forward",     (args.speed, args.speed)),
+            ("stop",        (0, 0)),
+            ("turn (diff)", (args.speed, args.speed * 0.3)),
+            ("stop",        (0, 0)),
+        ]
+        if args.spin:
+            pattern += [("spin (HARD REVERSE)", (-args.speed, args.speed)),
+                        ("stop", (0, 0))]
+        for label, (l, r) in pattern:
             print(f">> {label}: L{l:.0f} R{r:.0f}")
             d.drive(l, r)
             for _ in range(6):                       # ~3 s per step
